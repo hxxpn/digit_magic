@@ -32,7 +32,9 @@ class DrawingApp:
     def draw(self, event):
         if self.drawing:
             x, y = event.x, event.y
-            line = self.canvas.create_line(self.last_x, self.last_y, x, y, fill=self.pen_color, width=2)
+            line = self.canvas.create_line(
+                self.last_x, self.last_y, x, y, fill=self.pen_color, width=2
+            )
             self.lines.append(line)  # Store the drawn line
             self.last_x, self.last_y = x, y
 

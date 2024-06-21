@@ -32,11 +32,19 @@ learning_rate = 0.01
 num_epochs = 10
 
 # Load and preprocess the MNIST dataset
-train_dataset = datasets.MNIST(root='./data', train=True, transform=transforms.ToTensor(), download=True)
-test_dataset = datasets.MNIST(root='./data', train=False, transform=transforms.ToTensor())
+train_dataset = datasets.MNIST(
+    root="./data", train=True, transform=transforms.ToTensor(), download=True
+)
+test_dataset = datasets.MNIST(
+    root="./data", train=False, transform=transforms.ToTensor()
+)
 
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+train_loader = torch.utils.data.DataLoader(
+    dataset=train_dataset, batch_size=batch_size, shuffle=True
+)
+test_loader = torch.utils.data.DataLoader(
+    dataset=test_dataset, batch_size=batch_size, shuffle=False
+)
 
 # Instantiate the model, loss function, and optimizer
 model = MLPClassifier(input_size, hidden_size, num_classes).to(device)
@@ -69,7 +77,9 @@ for epoch in range(num_epochs):
 
     epoch_loss = running_loss / len(train_loader)
     epoch_accuracy = 100.0 * correct / total
-    print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%")
+    print(
+        f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%"
+    )
 
 # Evaluation on the test set
 model.eval()

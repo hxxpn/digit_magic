@@ -38,7 +38,7 @@ while running:
                     # Save button clicked
                     pygame.image.save(screen, "temp_drawing.png")
                     img = Image.open("temp_drawing.png")
-                    img = img.convert('L')
+                    img = img.convert("L")
                     img = img.resize((28, 28), Image.Resampling.LANCZOS)
 
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
