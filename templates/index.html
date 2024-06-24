@@ -1,131 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Drawing App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw Characters</title>
     <style>
         body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-        }
-
-        .container {
-            text-align: center;
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        h1 {
+            background-color: #f9f9f9;
             color: #333;
-            animation: slideDown 0.5s ease-in-out;
         }
-
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        .canvas-container {
+            position: relative;
+            margin-bottom: 20px;
+            background-color: white;
+        }
         canvas {
-            border: 1px solid black;
-            background-size: 20px 20px;
-            background-image:
-                linear-gradient(to right, #eee 1px, transparent 1px),
-                linear-gradient(to bottom, #eee 1px, transparent 1px);
-            animation: zoomIn 0.5s ease-in-out;
+            border: 1px solid #e0e0e0;
+            cursor: default;
         }
-
+        .grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
         button {
-            margin-top: 10px;
             padding: 10px 20px;
             font-size: 16px;
-            background-color: #4CAF50;
+            cursor: pointer;
+            background-color: #10a37f;
             color: white;
             border: none;
             border-radius: 4px;
-            cursor: pointer;
-            animation: fadeIn 0.5s ease-in-out;
+            transition: background-color 0.3s ease;
         }
-
         button:hover {
-            background-color: #45a049;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-            margin-top: 20px;
-            text-align: left;
-        }
-
-        li {
-            margin-bottom: 10px;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        a {
-            color: #333;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes slideDown {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes zoomIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
+            background-color: #0d8c6f;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Drawing App</h1>
-        <canvas id="canvas" width="560" height="560"></canvas>
-        <div class="button-container">
-            <button id="saveButton">Save Image</button>
-            <button id="clearButton">Clear Canvas</button>
+        <h1>Draw a Character</h1>
+        <div class="canvas-container">
+            <canvas id="drawingCanvas" width="560" height="560"></canvas>
+            <canvas id="gridCanvas" class="grid" width="560" height="560"></canvas>
         </div>
-        <ul id="imageList"></ul>
+        <div class="button-container">
+            <button id="saveBtn">Save Image</button>
+            <button id="clearBtn">Clear Canvas</button>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
+        const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
-        const saveButton = document.getElementById('saveButton');
-        const clearButton = document.getElementById('clearButton');
-        const imageList = document.getElementById('imageList');
-
+        const gridCanvas = document.getElementById('gridCanvas');
+        const gridCtx = gridCanvas.getContext('2d');
         let isDrawing = false;
 
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-        saveButton.addEventListener('click', saveImage);
-        clearButton.addEventListener('click', clearCanvas);
+        // Set up the canvas
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
 
+        // Draw grid
+        function drawGrid() {
+            gridCtx.strokeStyle = '#e0e0e0';
+            gridCtx.lineWidth = 1;
+            const cellSize = canvas.width / 20;
+            for (let i = 0; i <= 20; i++) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(i * cellSize, 0);
+                gridCtx.lineTo(i * cellSize, canvas.height);
+                gridCtx.stroke();
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, i * cellSize);
+                gridCtx.lineTo(canvas.width, i * cellSize);
+                gridCtx.stroke();
+            }
+        }
+        drawGrid();
+
+        // Drawing functions
         function startDrawing(e) {
             isDrawing = true;
             draw(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
         }
 
         function draw(e) {
@@ -135,41 +125,48 @@
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 10;
-            ctx.lineCap = 'round';
             ctx.lineTo(x, y);
             ctx.stroke();
             ctx.beginPath();
             ctx.moveTo(x, y);
         }
 
-        function stopDrawing() {
-            isDrawing = false;
-            ctx.beginPath();
-        }
+        // Event listeners for drawing
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
 
-        function saveImage() {
-            const timestamp = new Date().toLocaleString();
-            const filename = `drawing_${timestamp}.png`;
+        // Clear canvas
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
 
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL();
-            link.download = filename;
-            link.click();
+        // Save image
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const imageData = canvas.toDataURL('image/png');
 
-            const listItem = document.createElement('li');
-            const imageLink = document.createElement('a');
-            imageLink.href = canvas.toDataURL();
-            imageLink.download = filename;
-            imageLink.textContent = filename;
-            listItem.appendChild(imageLink);
-            imageList.appendChild(listItem);
-        }
-
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ imageData: imageData }),
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'drawing.png';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => console.error('Error:', error));
+        });
     </script>
 </body>
 </html>
