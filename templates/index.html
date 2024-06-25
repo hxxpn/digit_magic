@@ -220,7 +220,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                let resultsHtml = '<h2>Noisy Classification Results</h2><div class="noisy-images">';
+                let resultsHtml = '<h2>Klasifikacija sa sumom</h2><div class="noisy-images">';
                 data.forEach(result => {
                     resultsHtml += `
                         <div class="noisy-image">
