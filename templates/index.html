@@ -3,57 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draw, Classify, and Train MNIST Model</title>
+    <title>Klasifikacija cifara pomocu neuralnih mreza</title>
     <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #ecf0f1;
+            --text-color: #2c3e50;
+            --border-radius: 8px;
+        }
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
             margin: 0;
-            background-color: #f0f0f0;
+            padding: 20px;
+            background-color: var(--background-color);
+            color: var(--text-color);
         }
         .container {
-            text-align: center;
+            max-width: 1000px;
+            margin: 0 auto;
             background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
         }
         canvas {
-            border: 1px solid #000;
-            margin-bottom: 10px;
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius);
             cursor: crosshair;
         }
-        button {
-            margin: 5px;
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button, select {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            transition: background-color 0.3s ease;
         }
-        #result, #probabilities {
-            margin-top: 10px;
+        button:hover, select:hover {
+            background-color: var(--secondary-color);
         }
-        #trainingResults {
+        #result, #probabilities, #noisyResults, #mnistSubsetResults, #trainingResults {
             margin-top: 20px;
+            padding: 15px;
+            background-color: var(--background-color);
+            border-radius: var(--border-radius);
         }
-        #trainingPlot {
+        .noisy-images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .noisy-image {
+            text-align: center;
+            background-color: white;
+            padding: 10px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .noisy-image img {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: var(--border-radius);
+        }
+        #trainingPlot, #mnistSubsetResults img {
             max-width: 100%;
             height: auto;
+            border-radius: var(--border-radius);
+            margin-top: 15px;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: var(--primary-color);
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Draw, Classify, and Train MNIST Model</h1>
-        <canvas id="drawingCanvas" width="280" height="280"></canvas>
-        <br>
-        <button id="classifyBtn">Classify</button>
-        <button id="clearBtn">Clear Canvas</button>
-        <button id="trainBtn">Train Model</button>
+        <h1>Klasifikacija cifara pomocu neuralnih mreza</h1>
+        <div class="canvas-container">
+            <canvas id="drawingCanvas" width="280" height="280"></canvas>
+        </div>
+        <div class="controls">
+            <select id="modelPicker">
+                <option value="cnn">Konvoluciona neuralna mreza</option>
+                <option value="mlp">Jednostavna neuralna mreza</option>
+            </select>
+            <button id="classifyBtn">Klasifikacija</button>
+            <button id="clearBtn">Ocisti povrsinu</button>
+            <button id="trainBtn">Treniraj model</button>
+            <button id="classifyNoisyBtn">Klasifikuj sa sumom</button>
+            <button id="testMnistSubsetBtn">Testiraj sum na MINST skupu podataka</button>
+        </div>
         <div id="result"></div>
         <div id="probabilities"></div>
+        <div id="noisyResults"></div>
+        <div id="mnistSubsetResults"></div>
         <div id="trainingResults"></div>
         <img id="trainingPlot" src="" alt="Training Results" style="display: none;">
     </div>
@@ -63,14 +137,12 @@
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
 
-        // Set up the canvas
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 15;
         ctx.lineCap = 'round';
 
-        // Drawing functions
         function startDrawing(e) {
             isDrawing = true;
             draw(e);
@@ -96,67 +168,133 @@
             ctx.moveTo(x, y);
         }
 
-        // Event listeners for drawing
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
 
-        // Clear canvas
         document.getElementById('clearBtn').addEventListener('click', () => {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             document.getElementById('result').textContent = '';
             document.getElementById('probabilities').innerHTML = '';
+            document.getElementById('noisyResults').innerHTML = '';
         });
 
-        // Classify
         document.getElementById('classifyBtn').addEventListener('click', () => {
             const imageData = canvas.toDataURL('image/png');
+            const modelType = document.getElementById('modelPicker').value;
+
+            document.getElementById('result').innerHTML = '<p class="loading pulse">Classifying...</p>';
 
             fetch('/classify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ imageData: imageData }),
+                body: JSON.stringify({ imageData: imageData, modelType: modelType }),
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('result').textContent = `Classification Result: ${data.result}`;
+                document.getElementById('result').innerHTML = `<h2>Rezultat klasifikacije: ${data.result}</h2>`;
                 const probsHtml = data.probabilities.map((prob, index) =>
-                    `<div>Class ${index}: ${(prob * 100).toFixed(2)}%</div>`
+                    `<div>Klasa ${index}: <div style="width: ${prob * 100}%; background-color: var(--primary-color); height: 20px; border-radius: var(--border-radius);"></div> ${(prob * 100).toFixed(2)}%</div>`
                 ).join('');
-                document.getElementById('probabilities').innerHTML = probsHtml;
+                document.getElementById('probabilities').innerHTML = `<h3>Raspodela verovatnoca:</h3>${probsHtml}`;
             })
             .catch(error => console.error('Error:', error));
         });
 
-        // Train Model
+        document.getElementById('classifyNoisyBtn').addEventListener('click', () => {
+            const imageData = canvas.toDataURL('image/png');
+            const modelType = document.getElementById('modelPicker').value;
+
+            document.getElementById('noisyResults').innerHTML = '<p class="loading pulse">Klasifikacija sa sumom...</p>';
+
+            fetch('/classify_with_noise', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ imageData: imageData, modelType: modelType }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                let resultsHtml = '<h2>Noisy Classification Results</h2><div class="noisy-images">';
+                data.forEach(result => {
+                    resultsHtml += `
+                        <div class="noisy-image">
+                            <img src="${result.image}" alt="Noisy Image">
+                            <p>Verovatnoca suma: ${result.noise_prob}</p>
+                            <p>Rezultat: ${result.result}</p>
+                        </div>
+                    `;
+                });
+                resultsHtml += '</div>';
+                document.getElementById('noisyResults').innerHTML = resultsHtml;
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        document.getElementById('testMnistSubsetBtn').addEventListener('click', () => {
+            const modelType = document.getElementById('modelPicker').value;
+
+            document.getElementById('mnistSubsetResults').innerHTML = '<p class="loading pulse">Testiranje MINST podskupa...</p>';
+
+            fetch('/test_mnist_subset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ modelType: modelType }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                let resultsHtml = '<h2>MNIST Subset Test Results</h2>';
+                resultsHtml += `<img src="${data.plot}" alt="Accuracy vs Noise Plot">`;
+                document.getElementById('mnistSubsetResults').innerHTML = resultsHtml;
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
         document.getElementById('trainBtn').addEventListener('click', () => {
-            document.getElementById('trainingResults').textContent = 'Training in progress...';
+            const modelType = document.getElementById('modelPicker').value;
+            document.getElementById('trainingResults').innerHTML = `<p class="loading pulse">Treniranje modela: ${modelType} u toku...</p>`;
             document.getElementById('trainingPlot').style.display = 'none';
+
+            if (window.trainingStatusChecker) {
+                clearTimeout(window.trainingStatusChecker);
+            }
 
             fetch('/train', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ modelType: modelType }),
             })
             .then(response => response.json())
             .then(data => {
-                checkTrainingStatus();
+                checkTrainingStatus(modelType);
             })
             .catch(error => console.error('Error:', error));
         });
 
-        function checkTrainingStatus() {
+        function checkTrainingStatus(modelType) {
             fetch('/training_status')
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'completed') {
-                    document.getElementById('trainingResults').textContent = `Training completed. Final Loss: ${data.results.loss.toFixed(4)}, Final Accuracy: ${data.results.accuracy.toFixed(2)}%`;
-                    document.getElementById('trainingPlot').src = 'static/training_results.png?' + new Date().getTime();
+                    document.getElementById('trainingResults').innerHTML = `
+                        <h2>Treniranje zavrseno</h2>
+                        <p>Model: ${modelType}</p>
+                        <p>Krajnji gubitak: ${data.results.loss.toFixed(4)}</p>
+                        <p>Krajnja tacnost: ${data.results.accuracy.toFixed(2)}%</p>
+                    `;
+                    document.getElementById('trainingPlot').src = `static/training_results_${modelType}.png?` + new Date().getTime();
                     document.getElementById('trainingPlot').style.display = 'block';
                 } else {
-                    setTimeout(checkTrainingStatus, 1000);
+                    window.trainingStatusChecker = setTimeout(() => checkTrainingStatus(modelType), 1000);
                 }
             })
             .catch(error => console.error('Error:', error));
