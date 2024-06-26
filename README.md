@@ -27,3 +27,6 @@ This is the noise vs probability plot
 
 This is the noisy detection with classification results
 ![img_6.png](img_6.png)
+
+
+![img_7.png](img_7.png)
